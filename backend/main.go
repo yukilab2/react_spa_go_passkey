@@ -154,19 +154,19 @@ func getRegistrationOptions(c *gin.Context) {
 		Email string `json:"email" binding:"required,email"`
 	}
 
-	fmt.Println("DEBUG: 登録オプション処理を開始")
+	// fmt.Println("DEBUG: 登録オプション処理を開始")
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		fmt.Printf("DEBUG: JSONバインドエラー: %v\n", err)
+		// fmt.Printf("DEBUG: JSONバインドエラー: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "無効なリクエスト: " + err.Error()})
 		return
 	}
 
-	fmt.Printf("DEBUG: リクエスト内容: %+v\n", req)
+	// fmt.Printf("DEBUG: リクエスト内容: %+v\n", req)
 
 	// メールアドレスが許可リストにあるか確認
 	if !isEmailAllowed(req.Email) {
-		fmt.Printf("DEBUG: 許可されていないメールアドレス: %s\n", req.Email)
+		// fmt.Printf("DEBUG: 許可されていないメールアドレス: %s\n", req.Email)
 		c.JSON(http.StatusForbidden, gin.H{"message": "このメールアドレスは登録が許可されていません。"})
 		return
 	}
@@ -182,24 +182,24 @@ func getRegistrationOptions(c *gin.Context) {
 			Credentials: []webauthn.Credential{},
 		}
 		userDB[req.Email] = user
-		fmt.Printf("DEBUG: 新規ユーザー作成: %s\n", req.Email)
+		// fmt.Printf("DEBUG: 新規ユーザー作成: %s\n", req.Email)
 	} else {
-		fmt.Printf("DEBUG: 既存ユーザー: %s\n", req.Email)
+		// fmt.Printf("DEBUG: 既存ユーザー: %s\n", req.Email)
 	}
 
 	// 登録オプションを生成
 	options, sessionData, err := webAuthn.BeginRegistration(user)
 	if err != nil {
-		fmt.Printf("DEBUG: 登録オプション生成エラー: %v\n", err)
+		// fmt.Printf("DEBUG: 登録オプション生成エラー: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "登録オプションの生成に失敗しました: " + err.Error()})
 		return
 	}
 
 	// セッションデータをユーザーに関連付けて一時的に保存
 	user.RegistrationSessionData = sessionData
-	fmt.Printf("DEBUG: 登録セッション開始: User=%s\n", user.ID)
-	fmt.Printf("DEBUG: Challenge: %x\n", options.Response.Challenge)
-	fmt.Printf("DEBUG: User.ID型: %T, 値: %v\n", options.Response.User.ID, options.Response.User.ID)
+	// fmt.Printf("DEBUG: 登録セッション開始: User=%s\n", user.ID)
+	// fmt.Printf("DEBUG: Challenge: %x\n", options.Response.Challenge)
+	// fmt.Printf("DEBUG: User.ID型: %T, 値: %v\n", options.Response.User.ID, options.Response.User.ID)
 
 	// レスポンスを作成
 	publicKeyMap := gin.H{
@@ -227,23 +227,23 @@ func getRegistrationOptions(c *gin.Context) {
 		publicKeyMap["attestation"] = "none"
 	default:
 		// 不明な値の場合も "none" として扱う (より安全)
-		fmt.Printf("DEBUG: 不明なAttestation Preference: '%s'、'none'として処理\n", attestationPref)
+		// fmt.Printf("DEBUG: 不明なAttestation Preference: '%s'、'none'として処理\n", attestationPref)
 		publicKeyMap["attestation"] = "none"
 	}
 
 	responseJson := publicKeyMap
 
-	fmt.Printf("DEBUG: レスポンスJSON: %+v\n", responseJson)
+	// fmt.Printf("DEBUG: レスポンスJSON: %+v\n", responseJson)
 	c.JSON(http.StatusOK, responseJson)
 }
 
 // 登録検証のエンドポイント
 func verifyRegistration(c *gin.Context) {
-	fmt.Println("DEBUG: 登録検証処理を開始")
+	// fmt.Println("DEBUG: 登録検証処理を開始")
 
 	// リクエストボディを出力
 	rawData, _ := c.GetRawData()
-	fmt.Printf("DEBUG: 登録検証リクエストボディ: %s\n", string(rawData))
+	// fmt.Printf("DEBUG: 登録検証リクエストボディ: %s\n", string(rawData))
 
 	// リクエストをバインド
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawData)) // ボディを再設定
@@ -255,23 +255,23 @@ func verifyRegistration(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		fmt.Printf("DEBUG: リクエストJSONパースエラー: %v\n", err)
+		// fmt.Printf("DEBUG: リクエストJSONパースエラー: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "リクエスト形式が不正です: " + err.Error()})
 		return
 	}
 
-	fmt.Printf("DEBUG: パースしたリクエスト: %+v\n", req)
+	// fmt.Printf("DEBUG: パースしたリクエスト: %+v\n", req)
 
 	// ユーザーを検索
 	user, exists := userDB[req.Email]
 	if !exists || user.RegistrationSessionData == nil {
-		fmt.Printf("DEBUG: ユーザーまたはセッションが見つかりません: email=%s\n", req.Email)
+		// fmt.Printf("DEBUG: ユーザーまたはセッションが見つかりません: email=%s\n", req.Email)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "ユーザーまたは登録セッションが見つかりません。"})
 		return
 	}
 
 	foundSession := user.RegistrationSessionData
-	fmt.Printf("DEBUG: 検証用セッションデータ: %+v\n", foundSession)
+	// fmt.Printf("DEBUG: 検証用セッションデータ: %+v\n", foundSession)
 
 	// フロントエンドから送られてきたattestationResponseを直接WebAuthnライブラリに渡せる形に変換
 	// WebAuthnライブラリが期待する構造に変換
@@ -285,7 +285,7 @@ func verifyRegistration(c *gin.Context) {
 	// JSONに変換してhttpリクエストのボディに設定
 	jsonBytes, err := json.Marshal(attestationResp)
 	if err != nil {
-		fmt.Printf("DEBUG: attestationデータのJSON化エラー: %v\n", err)
+		// fmt.Printf("DEBUG: attestationデータのJSON化エラー: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部サーバーエラー"})
 		return
 	}
@@ -293,18 +293,18 @@ func verifyRegistration(c *gin.Context) {
 	// 新しいリクエストを作成
 	newReq, err := http.NewRequest("POST", c.Request.URL.String(), bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		fmt.Printf("DEBUG: リクエスト作成エラー: %v\n", err)
+		// fmt.Printf("DEBUG: リクエスト作成エラー: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部サーバーエラー"})
 		return
 	}
 	newReq.Header.Set("Content-Type", "application/json")
 
-	fmt.Printf("DEBUG: 変換後のリクエストボディ: %s\n", string(jsonBytes))
+	// fmt.Printf("DEBUG: 変換後のリクエストボディ: %s\n", string(jsonBytes))
 
 	// リクエストをそのままFinishRegistrationに渡す
 	credential, err := webAuthn.FinishRegistration(user, *foundSession, newReq)
 	if err != nil {
-		fmt.Printf("DEBUG: 登録検証失敗: User=%s, Error=%v\n", user.ID, err)
+		// fmt.Printf("DEBUG: 登録検証失敗: User=%s, Error=%v\n", user.ID, err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "登録検証に失敗しました: " + err.Error()})
 		return
 	}
@@ -312,8 +312,8 @@ func verifyRegistration(c *gin.Context) {
 	// ユーザーのクレデンシャルを保存
 	user.Credentials = append(user.Credentials, *credential)
 	user.RegistrationSessionData = nil // セッションデータをクリア
-	fmt.Printf("DEBUG: Passkey登録成功: User=%s, CredentialID=%x\n", user.ID, credential.ID)
-	fmt.Printf("DEBUG: 登録完了後のユーザーDB状態: %+v\n", userDB)
+	// fmt.Printf("DEBUG: Passkey登録成功: User=%s, CredentialID=%x\n", user.ID, credential.ID)
+	// fmt.Printf("DEBUG: 登録完了後のユーザーDB状態: %+v\n", userDB)
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -323,15 +323,15 @@ func verifyRegistration(c *gin.Context) {
 
 // 認証オプションを取得するエンドポイント
 func getAuthenticationOptions(c *gin.Context) {
-	fmt.Println("DEBUG: 認証オプション処理を開始")
+	// fmt.Println("DEBUG: 認証オプション処理を開始")
 	// 登録されたユーザーがいない場合
 	if len(userDB) == 0 {
-		fmt.Println("DEBUG: ユーザーDBが空です")
+		// fmt.Println("DEBUG: ユーザーDBが空です")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "登録されたユーザーがいません。"})
 		return
 	}
 
-	fmt.Printf("DEBUG: 現在のユーザーDB: %+v\n", userDB)
+	// fmt.Printf("DEBUG: 現在のユーザーDB: %+v\n", userDB)
 
 	// ユーザーDBから最初のユーザーを取得
 	var firstUser *User
@@ -340,20 +340,20 @@ func getAuthenticationOptions(c *gin.Context) {
 		break // 最初のユーザーを取得したらループを抜ける
 	}
 
-	fmt.Printf("DEBUG: ユーザー %s を使用して認証オプションを生成\n", firstUser.ID)
+	// fmt.Printf("DEBUG: ユーザー %s を使用して認証オプションを生成\n", firstUser.ID)
 
 	// BeginLoginに最初のユーザーを渡す
 	options, sessionData, err := webAuthn.BeginLogin(firstUser)
 	if err != nil {
-		fmt.Printf("DEBUG: 認証オプション生成エラー: %v\n", err)
+		// fmt.Printf("DEBUG: 認証オプション生成エラー: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "認証オプションの生成に失敗しました: " + err.Error()})
 		return
 	}
 
 	// グローバルなセッションストアに認証セッションデータを保存
 	sessionStore["auth"] = sessionData
-	fmt.Println("DEBUG: 認証セッション開始")
-	fmt.Printf("DEBUG: Challenge: %x\n", options.Response.Challenge)
+	// fmt.Println("DEBUG: 認証セッション開始")
+	// fmt.Printf("DEBUG: Challenge: %x\n", options.Response.Challenge)
 
 	// レスポンスを作成
 	publicKeyMap := gin.H{
@@ -366,27 +366,27 @@ func getAuthenticationOptions(c *gin.Context) {
 
 	responseJson := publicKeyMap
 
-	fmt.Printf("DEBUG: 認証レスポンスJSON: %+v\n", responseJson)
+	// fmt.Printf("DEBUG: 認証レスポンスJSON: %+v\n", responseJson)
 	c.JSON(http.StatusOK, responseJson)
 }
 
 // 認証検証のエンドポイント
 func verifyAuthentication(c *gin.Context) {
-	fmt.Println("DEBUG: 認証検証処理を開始")
+	// fmt.Println("DEBUG: 認証検証処理を開始")
 
 	// グローバルなセッションデータを取得
 	session, exists := sessionStore["auth"]
 	if !exists {
-		fmt.Println("DEBUG: 認証セッションが見つかりません")
+		// fmt.Println("DEBUG: 認証セッションが見つかりません")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "認証セッションが見つかりません。"})
 		return
 	}
 
-	fmt.Printf("DEBUG: 認証セッションデータ: %+v\n", session)
+	// fmt.Printf("DEBUG: 認証セッションデータ: %+v\n", session)
 
 	// リクエストボディをログに出力
 	rawData, _ := c.GetRawData()
-	fmt.Printf("DEBUG: 認証検証リクエストボディ: %s\n", string(rawData))
+	// fmt.Printf("DEBUG: 認証検証リクエストボディ: %s\n", string(rawData))
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawData)) // ボディを再設定
 
 	// フロントエンドから送られてくるデータ構造をパース
@@ -395,19 +395,19 @@ func verifyAuthentication(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		fmt.Printf("DEBUG: リクエストJSONパースエラー: %v\n", err)
+		// fmt.Printf("DEBUG: リクエストJSONパースエラー: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "リクエスト形式が不正です: " + err.Error()})
 		return
 	}
 
-	fmt.Printf("DEBUG: パースしたリクエスト: %+v\n", req)
+	// fmt.Printf("DEBUG: パースしたリクエスト: %+v\n", req)
 
 	// 認証応答データを抽出
 	authData := req.AssertionResponse
 
 	// エラーチェック: リクエストが正しい形式であることを確認
 	if authData == nil || authData["id"] == nil || authData["response"] == nil {
-		fmt.Println("DEBUG: 認証データの形式が無効です: 必須フィールドがありません")
+		// fmt.Println("DEBUG: 認証データの形式が無効です: 必須フィールドがありません")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "認証データの形式が無効です: 必須フィールドがありません"})
 		return
 	}
@@ -415,17 +415,17 @@ func verifyAuthentication(c *gin.Context) {
 	// authDataを直接使用してJSONにシリアライズし、新しいリクエストにする
 	jsonBytes, err := json.Marshal(authData)
 	if err != nil {
-		fmt.Printf("DEBUG: assertionデータのJSON化エラー: %v\n", err)
+		// fmt.Printf("DEBUG: assertionデータのJSON化エラー: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部サーバーエラー"})
 		return
 	}
 
-	fmt.Printf("DEBUG: 変換後のリクエストデータ: %s\n", string(jsonBytes))
+	// fmt.Printf("DEBUG: 変換後のリクエストデータ: %s\n", string(jsonBytes))
 
 	// 新しいリクエストを作成
 	newReq, err := http.NewRequest("POST", c.Request.URL.String(), bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		fmt.Printf("DEBUG: リクエスト作成エラー: %v\n", err)
+		// fmt.Printf("DEBUG: リクエスト作成エラー: %v\n", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "内部サーバーエラー"})
 		return
 	}
@@ -434,21 +434,21 @@ func verifyAuthentication(c *gin.Context) {
 	// IDを直接base64デコードしてユーザー検索に使用
 	credentialID, ok := authData["id"].(string)
 	if !ok {
-		fmt.Printf("DEBUG: credential ID の取得に失敗\n")
+		// fmt.Printf("DEBUG: credential ID の取得に失敗\n")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Credential IDの形式が無効です"})
 		return
 	}
 
 	credentialIDBytes, err := base64.RawURLEncoding.DecodeString(credentialID)
 	if err != nil {
-		fmt.Printf("DEBUG: 認証検証エラー: Credential ID のデコードに失敗: %v\n", err)
+		// fmt.Printf("DEBUG: 認証検証エラー: Credential ID のデコードに失敗: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Credential IDの形式が無効です"})
 		return
 	}
 
 	// ユーザー検索関数を定義
 	userHandler := func(rawID, userHandle []byte) (webauthn.User, error) {
-		fmt.Printf("DEBUG: ValidateLogin: ユーザー検索 rawID=%x\n", rawID)
+		// fmt.Printf("DEBUG: ValidateLogin: ユーザー検索 rawID=%x\n", rawID)
 		var foundUser *User
 		// まず rawID (Credential ID) で検索
 		for _, u := range userDB {
@@ -456,20 +456,20 @@ func verifyAuthentication(c *gin.Context) {
 				// cred.ID と rawID はどちらも []byte なので直接比較
 				if bytes.Equal(cred.ID, rawID) {
 					foundUser = u
-					fmt.Printf("DEBUG: ValidateLogin: rawID でユーザー %s を発見\n", foundUser.ID)
+					// fmt.Printf("DEBUG: ValidateLogin: rawID でユーザー %s を発見\n", foundUser.ID)
 					return foundUser, nil // 発見したら返す
 				}
 			}
 		}
 
 		// userHandleが存在し、空でない場合はそれで検索
-		if userHandle != nil && len(userHandle) > 0 {
-			userStr := string(userHandle)
-			fmt.Printf("DEBUG: userHandle文字列: %s\n", userStr)
-			u, exists := userDB[userStr]
+		if len(userHandle) > 0 {
+			// userStr := string(userHandle)
+			// fmt.Printf("DEBUG: userHandle文字列: %s\n", userStr)
+			u, exists := userDB[string(userHandle)]
 			if exists {
 				foundUser = u
-				fmt.Printf("DEBUG: ValidateLogin: userHandle でユーザー %s を発見\n", foundUser.ID)
+				// fmt.Printf("DEBUG: ValidateLogin: userHandle でユーザー %s を発見\n", foundUser.ID)
 				return foundUser, nil // 発見したら返す
 			}
 		}
@@ -478,12 +478,12 @@ func verifyAuthentication(c *gin.Context) {
 		if len(userDB) > 0 {
 			for _, u := range userDB {
 				foundUser = u
-				fmt.Printf("DEBUG: ValidateLogin: 最初のユーザー %s を返します\n", foundUser.ID)
+				// fmt.Printf("DEBUG: ValidateLogin: 最初のユーザー %s を返します\n", foundUser.ID)
 				return foundUser, nil
 			}
 		}
 
-		fmt.Println("DEBUG: ValidateLogin: ユーザーが見つかりません")
+		// fmt.Println("DEBUG: ValidateLogin: ユーザーが見つかりません")
 		return nil, fmt.Errorf("ユーザーが見つかりません")
 	}
 
@@ -498,7 +498,7 @@ func verifyAuthentication(c *gin.Context) {
 	// ユーザーを特定
 	potentialUser, err := userHandler(credentialIDBytes, userHandle)
 	if err != nil {
-		fmt.Printf("DEBUG: 認証検証前ユーザー検索エラー: %v\n", err)
+		// fmt.Printf("DEBUG: 認証検証前ユーザー検索エラー: %v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "登録されたユーザーがいません。"})
 		return
 	}
@@ -506,7 +506,7 @@ func verifyAuthentication(c *gin.Context) {
 	// キャストして具体的なユーザー情報を取得
 	userToValidate, ok := potentialUser.(*User)
 	if !ok || userToValidate == nil {
-		fmt.Printf("DEBUG: 認証検証前ユーザーキャスト失敗\n")
+		// fmt.Printf("DEBUG: 認証検証前ユーザーキャスト失敗\n")
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "ユーザー情報の取得に失敗しました"})
 		return
 	}
@@ -514,7 +514,7 @@ func verifyAuthentication(c *gin.Context) {
 	// go-webauthnライブラリの検証関数を使用
 	credential, err := webAuthn.FinishLogin(userToValidate, *session, newReq)
 	if err != nil {
-		fmt.Printf("DEBUG: 認証検証失敗(FinishLogin): Error=%v\n", err)
+		// fmt.Printf("DEBUG: 認証検証失敗(FinishLogin): Error=%v\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"message": "認証検証に失敗しました: " + err.Error()})
 		return
 	}
@@ -524,7 +524,7 @@ func verifyAuthentication(c *gin.Context) {
 
 	// グローバルなセッションデータをクリア
 	delete(sessionStore, "auth")
-	fmt.Printf("DEBUG: 認証成功: User=%s\n", userToValidate.ID) // userToValidate を使用
+	// fmt.Printf("DEBUG: 認証成功: User=%s\n", userToValidate.ID) // userToValidate を使用
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":     true,
