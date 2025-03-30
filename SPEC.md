@@ -15,3 +15,6 @@
   - 未登録ユーザーのログイン試行や、.envファイルに存在しないemailでの登録試行に対するエラー処理を実装する。
 - 構築用のスクリプトは必要ないが、 rootに Makefileをおき、react の実行 (yarn dev / yarn build / yarn start) と　go の実行 (go run main.go) をそこから行えるようにする。
 - 使い方は README.md に記載する。
+- node: v22 を nodeenv から使用する
+- react は typescript で記載する
+- reactのUIコンポーネントは radix-ui / css-moduleを使用する
