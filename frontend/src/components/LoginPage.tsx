@@ -31,7 +31,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         try {
             // バックエンドから登録オプションを取得
             const registrationOptions = await authService.getRegistrationOptions(email);
-            console.debug('## registrationOptions', registrationOptions);
             // ブラウザのPasskey登録APIを呼び出し
             const attResp = await startRegistration(registrationOptions);
 
